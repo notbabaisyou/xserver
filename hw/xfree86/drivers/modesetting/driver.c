@@ -1676,7 +1676,7 @@ msStopFlippingPixmapTracking(DrawablePtr src,
 }
 
 static Bool
-modsetCreateScreenResources(ScreenPtr pScreen)
+modesetCreateScreenResources(ScreenPtr pScreen)
 {
     ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
     modesettingPtr ms = modesettingPTR(pScrn);
@@ -1991,7 +1991,7 @@ ScreenInit(ScreenPtr pScreen, int argc, char **argv)
         return FALSE;
     }
 
-    pScreen->CreateScreenResources = modsetCreateScreenResources;
+    pScreen->CreateScreenResources = modesetCreateScreenResources;
 
     xf86SetBlackWhitePixels(pScreen);
 
