@@ -918,6 +918,51 @@ msSetWindowVRRMode(WindowPtr window, WindowVRRMode mode)
         ms_present_set_screen_vrr(scrn, variable_refresh);
 }
 
+
+Bool
+ms_window_has_async_flip(WindowPtr win)
+{
+    ScrnInfoPtr scrn = xf86ScreenToScrn(win->drawable.pScreen);
+    modesettingPtr ms = modesettingPTR(scrn);
+    struct ms_async_flip_priv *priv = dixLookupPrivate(&win->devPrivates,
+                                                       &ms->drmmode.asyncFlipPrivateKeyRec);
+
+    return priv->async_flip;
+}
+
+void
+ms_window_update_async_flip(WindowPtr win, Bool async_flip)
+{
+    ScrnInfoPtr scrn = xf86ScreenToScrn(win->drawable.pScreen);
+    modesettingPtr ms = modesettingPTR(scrn);
+    struct ms_async_flip_priv *priv = dixLookupPrivate(&win->devPrivates,
+                                                       &ms->drmmode.asyncFlipPrivateKeyRec);
+
+    priv->async_flip = async_flip;
+}
+
+Bool
+ms_window_has_async_flip_modifiers(WindowPtr win)
+{
+    ScrnInfoPtr scrn = xf86ScreenToScrn(win->drawable.pScreen);
+    modesettingPtr ms = modesettingPTR(scrn);
+    struct ms_async_flip_priv *priv = dixLookupPrivate(&win->devPrivates,
+                                                       &ms->drmmode.asyncFlipPrivateKeyRec);
+
+    return priv->async_flip_modifiers;
+}
+
+void
+ms_window_update_async_flip_modifiers(WindowPtr win, Bool async_flip)
+{
+    ScrnInfoPtr scrn = xf86ScreenToScrn(win->drawable.pScreen);
+    modesettingPtr ms = modesettingPTR(scrn);
+    struct ms_async_flip_priv *priv = dixLookupPrivate(&win->devPrivates,
+                                                       &ms->drmmode.asyncFlipPrivateKeyRec);
+
+    priv->async_flip_modifiers = async_flip;
+}
+
 static void
 FreeScreen(ScrnInfoPtr pScrn)
 {
@@ -1311,7 +1356,7 @@ PreInit(ScrnInfoPtr pScrn, int flags)
     ms->atomic_modeset_capable = (ret == 0);
 
     if (xf86ReturnOptValBool(ms->drmmode.Options, OPTION_ATOMIC, FALSE)) {
-        ret = drmSetClientCap(ms->fd, DRM_CLIENT_CAP_ATOMIC, 1);
+        ret = drmSetClientCap(ms->fd, DRM_CLIENT_CAP_ATOMIC, 2);
         ms->atomic_modeset = (ret == 0);
         if (!ms->atomic_modeset)
             xf86DrvMsg(pScrn->scrnIndex, X_WARNING, "Atomic modesetting not supported\n");
@@ -1636,7 +1681,7 @@ msStopFlippingPixmapTracking(DrawablePtr src,
 }
 
 static Bool
-modsetCreateScreenResources(ScreenPtr pScreen)
+modesetCreateScreenResources(ScreenPtr pScreen)
 {
     ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
     modesettingPtr ms = modesettingPTR(pScrn);
@@ -1714,6 +1759,11 @@ modsetCreateScreenResources(ScreenPtr pScreen)
         !dixRegisterPrivateKey(&ms->drmmode.vrrPrivateKeyRec,
                                PRIVATE_WINDOW,
                                sizeof(struct ms_vrr_priv)))
+            return FALSE;
+
+    if (!dixRegisterPrivateKey(&ms->drmmode.asyncFlipPrivateKeyRec,
+                               PRIVATE_WINDOW,
+                               sizeof(struct ms_async_flip_priv)))
             return FALSE;
 
     return ret;
@@ -1946,7 +1996,7 @@ ScreenInit(ScreenPtr pScreen, int argc, char **argv)
         return FALSE;
     }
 
-    pScreen->CreateScreenResources = modsetCreateScreenResources;
+    pScreen->CreateScreenResources = modesetCreateScreenResources;
 
     xf86SetBlackWhitePixels(pScreen);
 
