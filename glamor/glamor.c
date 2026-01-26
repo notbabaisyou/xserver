@@ -548,6 +548,7 @@ static void
 glamor_setup_formats(ScreenPtr screen)
 {
     glamor_screen_private *glamor_priv = glamor_get_screen_private(screen);
+    Bool is_gles = glamor_priv->is_gles && !glamor_priv->is_nvidia;
 
     /* Prefer r8 textures since they're required by GLES3 and core,
      * only falling back to a8 if we can't do them. We cannot do them
@@ -565,7 +566,7 @@ glamor_setup_formats(ScreenPtr screen)
                           GL_ALPHA, GL_ALPHA, GL_UNSIGNED_BYTE, TRUE);
     }
 
-    if (glamor_priv->is_gles) {
+    if (is_gles) {
         /* For 15bpp, GLES supports format/type RGBA/5551, rather than
          * bgra/1555_rev.  GL_EXT_bgra lets the impl say the color
          * read format/type is bgra/1555 even if we had to create it
@@ -585,7 +586,7 @@ glamor_setup_formats(ScreenPtr screen)
     glamor_add_format(screen, 16, PIXMAN_r5g6b5,
                       GL_RGB, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, TRUE);
 
-    if (glamor_priv->is_gles) {
+    if (is_gles) {
         assert(X_BYTE_ORDER == X_LITTLE_ENDIAN);
         glamor_add_format(screen, 24, PIXMAN_x8r8g8b8,
                           GL_BGRA, GL_BGRA, GL_UNSIGNED_BYTE, TRUE);
@@ -598,7 +599,7 @@ glamor_setup_formats(ScreenPtr screen)
                           GL_RGBA, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, TRUE);
     }
 
-    if (glamor_priv->is_gles) {
+    if (is_gles) {
         glamor_add_format(screen, 30, PIXMAN_x2b10g10r10,
                           GL_RGB10_A2, GL_RGBA, GL_UNSIGNED_INT_2_10_10_10_REV, TRUE);
     } else {

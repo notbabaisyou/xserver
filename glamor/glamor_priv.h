@@ -227,6 +227,7 @@ struct glamor_saved_procs {
 
 typedef struct glamor_screen_private {
     Bool is_gles;
+    Bool is_nvidia;
     int glsl_version;
     Bool has_pack_invert;
     Bool has_fbo_blit;

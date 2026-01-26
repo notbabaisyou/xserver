@@ -60,6 +60,8 @@ struct glamor_egl_screen_private {
     int dmabuf_capable;
 
     xf86FreeScreenProc *saved_free_screen;
+
+    int is_nvidia;
 };
 
 int xf86GlamorEGLPrivateIndex = -1;
@@ -1055,6 +1057,7 @@ glamor_egl_screen_init(ScreenPtr screen, struct glamor_context *glamor_ctx)
         glamor_egl_get_screen_private(scrn);
 #ifdef DRI3
     glamor_screen_private *glamor_priv = glamor_get_screen_private(screen);
+    glamor_priv->is_nvidia = glamor_egl->is_nvidia;
 #endif
 #ifdef GLXEXT
     static Bool vendor_initialized = FALSE;
@@ -1248,6 +1251,7 @@ glamor_egl_init(ScrnInfoPtr scrn, int fd)
 {
     struct glamor_egl_screen_private *glamor_egl;
     const GLubyte *renderer;
+    const GLubyte *vendor;
     OptionInfoPtr options;
     const char *api = NULL;
     Bool es_allowed = TRUE;
@@ -1336,6 +1340,14 @@ glamor_egl_init(ScrnInfoPtr scrn, int fd)
                    "glGetString() returned NULL, your GL is broken\n");
         goto error;
     }
+
+    vendor = glGetString(GL_VENDOR);
+    if (!vendor) {
+        xf86DrvMsg(scrn->scrnIndex, X_ERROR,
+                   "glGetString(GL_VENDOR) returned NULL, your GL is broken\n");
+        goto error;
+    }
+
     if (strstr((const char *)renderer, "softpipe")) {
         xf86DrvMsg(scrn->scrnIndex, X_INFO,
                    "Refusing to try glamor on softpipe\n");
@@ -1386,6 +1398,7 @@ glamor_egl_init(ScrnInfoPtr scrn, int fd)
     }
 #endif
 
+    glamor_egl->is_nvidia = strstr((const char *)vendor, "NVIDIA");
     glamor_egl->saved_free_screen = scrn->FreeScreen;
     scrn->FreeScreen = glamor_egl_free_screen;
     return TRUE;
