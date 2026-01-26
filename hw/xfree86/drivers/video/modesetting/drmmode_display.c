@@ -1012,9 +1012,16 @@ drmmode_crtc_flip(xf86CrtcPtr crtc, uint32_t fb_id, int x, int y,
 void
 drmmode_bo_destroy(drmmode_ptr drmmode, drmmode_bo *bo)
 {
-#ifdef GLAMOR_HAS_GBM
+#ifdef GLAMOR_HAS_GBM_MAP
     if (bo->gbm) {
-        gbm_bo_destroy(bo->gbm);
+        if (bo->gbm_ptr) {
+            gbm_bo_unmap(bo->gbm, bo->map);
+            bo->gbm_ptr = NULL;
+        }
+
+        if (bo->owned_gbm)
+            gbm_bo_destroy(bo->gbm);
+
         bo->gbm = NULL;
     }
 #endif
@@ -1078,16 +1085,14 @@ drmmode_bo_map(drmmode_ptr drmmode, drmmode_bo *bo)
         return bo->map;
     }
 
-#ifdef GLAMOR_HAS_GBM
+#ifdef GLAMOR_HAS_GBM_MAP
     if (bo->gbm) {
-        /* We shouldn't read from gpu memory */
         uint32_t stride;
-        void* unused;
-        void* map = gbm_bo_map(bo->gbm, 0, 0, bo->width, bo->height, GBM_BO_TRANSFER_WRITE, &stride, &unused);
-        if (map) {
-            bo->map = map;
-            return bo->map;
-        }
+
+        bo->gbm_ptr = gbm_bo_map(bo->gbm, 0, 0, bo->width, bo->height,
+                                 GBM_BO_TRANSFER_READ_WRITE, &stride,
+                                 &bo->map);
+        return bo->gbm_ptr;
     }
 #endif
 
@@ -3937,6 +3942,16 @@ drmmode_set_pixmap_bo(drmmode_ptr drmmode, PixmapPtr pixmap, drmmode_bo *bo)
 
     if (!drmmode->glamor)
         return TRUE;
+
+#ifdef GLAMOR_HAS_GBM_MAP
+    /* Calling egl_create_textured_pixmap_from_gbm_bo in GLAMOR will
+     * destroy the GBM BO, we need to unmap pointers ahead of time. */
+    if (bo->gbm && bo->gbm_ptr) {
+        gbm_bo_unmap(bo->gbm, bo->map);
+        bo->gbm_ptr = NULL;
+        bo->map = NULL;
+    }
+#endif
 
     if (!ms->glamor.egl_create_textured_pixmap_from_gbm_bo(pixmap, bo->gbm,
                                                            bo->used_modifiers)) {
