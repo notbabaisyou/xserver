@@ -1203,6 +1203,7 @@ drmmode_create_front_bo(drmmode_ptr drmmode, drmmode_bo *bo,
             free(modifiers);
             if (bo->gbm) {
                 bo->used_modifiers = TRUE;
+                bo->owned_gbm = TRUE;
                 return TRUE;
             }
         }
@@ -1212,6 +1213,7 @@ drmmode_create_front_bo(drmmode_ptr drmmode, drmmode_bo *bo,
                                 GBM_BO_USE_RENDERING | GBM_BO_USE_SCANOUT |
                                 GBM_BO_USE_FRONT_RENDERING);
         bo->used_modifiers = FALSE;
+        bo->owned_gbm = TRUE;
         return bo->gbm != NULL;
     }
 #endif
@@ -3941,6 +3943,8 @@ drmmode_set_pixmap_bo(drmmode_ptr drmmode, PixmapPtr pixmap, drmmode_bo *bo)
         xf86DrvMsg(scrn->scrnIndex, X_ERROR, "Failed to create pixmap\n");
         return FALSE;
     }
+
+    bo->owned_gbm = FALSE;
 #endif
 
     return TRUE;

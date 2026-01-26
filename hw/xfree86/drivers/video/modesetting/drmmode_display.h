@@ -83,6 +83,7 @@ typedef struct {
     struct dumb_bo *dumb;
 #ifdef GLAMOR_HAS_GBM
     Bool used_modifiers;
+    Bool owned_gbm;
     struct gbm_bo *gbm;
 #endif
     void* map;
